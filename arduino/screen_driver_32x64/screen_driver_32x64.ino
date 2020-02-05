@@ -20,12 +20,44 @@
 #define C   A2
 #define D   A3
 
-#define NUM_WIDTH  20
-#define NUM_HEIGHT 30
+/** @brief Positions of the digits on the scoreboard */
+#define SCORE_DIGIT_100_ROW  1
+#define SCORE_DIGIT_100_COL 1
+
+#define SCORE_DIGIT_010_ROW  1
+#define SCORE_DIGIT_010_COL 22
+
+#define SCORE_DIGIT_001_ROW  1
+#define SCORE_DIGIT_001_COL 43
+
+#define NUM_SCORE_DIGITS     3
+#define MAX_SCORE          999
+
+/** @brief Contains the positions for the digits on the screen */
+static const cursor_t SCORE_POSITIONS[NUM_SCORE_DIGITS] = {
+  {
+    SCORE_DIGIT_001_ROW,
+    SCORE_DIGIT_001_COL
+  },
+  {
+    SCORE_DIGIT_010_ROW,
+    SCORE_DIGIT_010_COL
+  },
+  {
+    SCORE_DIGIT_100_ROW,
+    SCORE_DIGIT_100_COL
+  }
+};
+
+/** @brief How many digits we support */
 #define NUM_DIGITS 10
 
+/** @brief Number graphic dimensions */
+#define NUM_WIDTH  20
+#define NUM_HEIGHT 30
+
 /*** NUMBER GRAPHICS ***/
-static const uint32_t NUM_GRAPHICS[NUM_DIGITS][NUM_HEIGHT] = {
+static uint32_t NUM_GRAPHICS[NUM_DIGITS][NUM_HEIGHT] = {
   {
     0B00000001111100000000,
     0B00000111111110000000,
@@ -356,10 +388,25 @@ static cursor_t cursor;
 static const uint16_t COLOR_BLACK = matrix.Color333(0, 0, 0);
 static const uint16_t COLOR_GREEN = matrix.Color333(0, 7, 0);
 
+/** @brief Clears the LED matrix
+ */
 void clear_screen () {
   matrix.fillScreen(COLOR_BLACK);
 }
 
+/** @brief Sets the position of the drawing cursor
+ */
+void set_cursor (int row, int col) {
+  cursor.row = row;
+  cursor.col = col;
+}
+
+/** @brief Prints out a given graphic at the cursor position.
+ *
+ *  @param graphic the bit matrix containing the graphic
+ *  @param width   the width of the graphic
+ *  @param height  the height of the graphic
+ */
 void print_graphic (uint32_t* graphic, int width, int height) {
   /* 
    * Constants are default 16-bit in Arduino so we need to make sure
@@ -382,10 +429,40 @@ void print_graphic (uint32_t* graphic, int width, int height) {
   }
 }
 
+/** @brief Draws a number at the current cursor position.
+ *
+ *  @param num the number to print out
+ *
+ *  @note  num must be between 0 and NUM_DIGITS to work
+ */
 void draw_num (int num) {
   if (num >= 0 && num < NUM_DIGITS) {
     print_graphic(NUM_GRAPHICS[num], NUM_WIDTH, NUM_HEIGHT);
   }
+}
+
+/** @brief Draws num onto the scoreboard
+ *
+ *  @param num the number to draw
+ *
+ *  @note  Since we only have 3 digits space, the score must be 0 <= 999
+ */
+void draw_score (int num) {
+  if (num >= 0 && num <= MAX_SCORE) {
+    // Draw the score from right to left
+    for (int i = 0; i < NUM_SCORE_DIGITS; i++) {
+      // Get the current digit
+      int curr_digit = num % 10;
+
+      // Set the cursor to the appropriate digit position and draw it
+      set_cursor(SCORE_POSITIONS[i].row, SCORE_POSITIONS[i].col);
+      draw_num(curr_digit);
+
+      num = num / 10;
+    }
+  }
+  
+
 }
 
 void setup() {
@@ -405,8 +482,8 @@ void setup() {
 static int i = 0;
 
 void loop() {
-  i = (i+1) % NUM_DIGITS;
-
-  draw_num(i);
+  draw_score(i);
+  i = (i + 1) % (MAX_SCORE + 1);
+  
   delay(1000);
 }
